@@ -36,8 +36,35 @@ def create_app() -> FastAPI:
     # ---- API Routes ----
     # WHY: The dashboard will call these endpoints for live data.
     app.include_router(api_router, prefix="/api")
+    # Attach API routes to the app under the /api prefix.
+    # Routers group related endpoints; the prefix defines where they live in the URL space.
+    # This keeps API paths separate from the dashboard (/), docs (/docs), and static assets.
 
     return app
 
 
 app = create_app()
+
+"""
+SUB-APPLICATION SUMMARY:
+
+FastAPI supports composing multiple ASGI applications together.
+A sub-application is mounted at a path prefix and fully owns that URL space.
+
+Why we mount StaticFiles instead of using routes:
+- Static files are not API business logic.
+- StaticFiles is an optimized ASGI app (correct headers, MIME types, security).
+- Avoids dangerous catch-all routes like "/{path:path}".
+- Keeps app wiring (composition) in main.py and endpoint logic in routes.py.
+
+Common real-world sub-app uses (not just static HTML):
+- /ui        → frontend app (React/Vite build)
+- /admin     → internal admin dashboard
+- /metrics   → Prometheus / monitoring ASGI app
+- /auth      → authentication providers
+- /v1, /v2   → versioned APIs
+
+Design rule:
+Routes answer questions.
+Sub-apps own territory.
+"""
