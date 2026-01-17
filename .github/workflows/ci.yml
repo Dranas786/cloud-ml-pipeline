@@ -15,9 +15,12 @@
 # Runs on pull requests to main.
 # Installs dependencies, runs tests, and builds the Docker image.
 # Ensures only deployable, validated code is merged.
-
 # ---------------------------------------------
-
+# on:
+#   pull_request:
+#   push:
+#     branches: [ "main" ]
+# as of right now only runs on prs as running on every push would it insane, but this is how it is done
 name: CI
 
 on:
