@@ -1,0 +1,33 @@
+# Central configuration file for Python tooling.
+# This file configures linting (ruff), type checking (mypy),
+# and test discovery (pytest) so CI and local runs behave the same.
+
+[tool.ruff]
+# Maximum line length enforced by the formatter/linter
+line-length = 100
+
+# Target Python version for syntax and rule compatibility
+target-version = "py311"
+
+[tool.ruff.lint]
+# Enable high-signal linting rules:
+# E = pycodestyle errors (formatting issues)
+# F = pyflakes (unused imports, undefined names)
+# I = import sorting
+select = ["E", "F", "I"]
+
+[tool.mypy]
+# Python version used for static type checking
+python_version = "3.11"
+
+# Ignore missing type hints in third-party libraries
+# (prevents CI failures due to untyped dependencies)
+ignore_missing_imports = true
+
+# Disable strict mode for gradual type adoption
+strict = false
+
+[tool.pytest.ini_options]
+# Only look for tests inside the "tests/" directory
+# Keeps test discovery fast and predictable
+testpaths = ["tests"]

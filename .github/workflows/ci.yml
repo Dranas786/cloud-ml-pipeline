@@ -1,21 +1,27 @@
 # .github/workflows/ci.yml
 # ---------------------------------------------
-# Continuous Integration pipeline
+# Continuous Integration (CI) pipeline
 #
 # WHY THIS EXISTS:
 # - Automatically validate every pull request
 # - Prevent broken code from reaching main
-# - Ensure the Docker image can be built
+# - Enforce code quality (lint, format, types, tests)
+# - Ensure the Docker image can be built (deployable artifact)
 #
 # WHAT THIS IS NOT:
 # - This does NOT deploy anything
-# - Deployment comes in the CD phase
-
-# CI pipeline:
-# Runs on pull requests to main.
-# Installs dependencies, runs tests, and builds the Docker image.
-# Ensures only deployable, validated code is merged.
-
+# - Deployment comes in the CD phase (ECR + ECS)
+#
+# TRIGGERS:
+# - Runs on Pull Requests to main (common team setup)
+# - You *can* also run on push to main, but PR-only keeps noise down
+#   and still blocks broken merges.
+#
+# Optional (not enabled):
+# on:
+#   pull_request:
+#   push:
+#     branches: ["main"]
 # ---------------------------------------------
 
 name: CI
@@ -25,34 +31,58 @@ on:
     branches: ["main"]
 
 jobs:
-  test-and-build:
-    name: Test and Build
+  test-lint-type-and-build:
+    name: Test, Lint, Typecheck, Build
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Get the repository code
+      # 1) Checkout repository code onto the runner VM
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python environment
+      # 2) Install the correct Python version (match local + Docker target)
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Install dependencies
+      # 3) Install Python dependencies (includes ruff/mypy/pytest tools)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4. Run tests (placeholder for now)
-      - name: Run tests
+      # 4) Ruff lint check:
+      #    - catches common mistakes (unused imports, undefined names)
+      #    - enforces import sorting (if enabled in pyproject.toml)
+      - name: Ruff (lint)
         run: |
-          echo "No tests yet — placeholder"
-          # pytest will go here in the next phase
+          ruff check .
 
-      # 5. Build Docker image
+      # 5) Ruff formatting check:
+      #    - verifies formatting without modifying files
+      #    - if this fails locally, run: ruff format .
+      - name: Ruff (format check)
+        run: |
+          ruff format --check .
+
+      # 6) Mypy type check:
+      #    - validates type hints to catch bugs earlier
+      #    - configuration lives in pyproject.toml
+      - name: Mypy (type check)
+        run: |
+          mypy .
+
+      # 7) Pytest:
+      #    - runs unit/API contract tests in tests/
+      #    - blocks PRs if endpoints or response shapes break
+      - name: Pytest
+        run: |
+          pytest -q
+
+      # 8) Docker build:
+      #    - ensures the app is containerizable (deployable)
+      #    - CD will later build+push to ECR, but CI only builds to validate
       - name: Build Docker image
         run: |
           docker build -t pipeline-dashboard .
